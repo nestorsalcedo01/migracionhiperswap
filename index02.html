@@ -52,21 +52,7 @@
         h3 {
             color: #0077b6;
             font-size: 1.5em;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            border: 1px solid #dee2e6;
-            padding: 12px;
-            text-align: left;
-        }
-        th {
-            background-color: #e9ecef;
-            color: #495057;
-            font-weight: 600;
+            margin-top: 30px;
         }
         .pro-tip {
             background-color: #e6f7ff;
@@ -122,134 +108,48 @@
     </header>
 
     <div class="container">
-        <section id="introduction">
-            <h2>Visión General: De la Alta Disponibilidad a la Continuidad del Negocio</h2>
-            <p>La migración de un entorno z/OS monoplex a un <strong>Parallel Sysplex</strong> representa un salto cualitativo en la estrategia de resiliencia de una organización. Este cambio no solo aumenta la capacidad de cómputo, sino que abre la puerta a soluciones de continuidad de negocio de misión crítica como <strong>IBM HyperSwap</strong>. HyperSwap, implementado sobre una infraestructura de almacenamiento DS8880, permite una conmutación por error de I/O casi instantánea y transparente entre sitios, protegiendo las aplicaciones contra fallos de almacenamiento sin interrupciones.</p>
-            <p>Esta guía profundiza en los requisitos técnicos y los pasos de configuración necesarios para que los administradores de almacenamiento y sistemas z/OS puedan planificar y ejecutar esta transición con éxito.</p>
-        </section>
-
-        <section id="concepts">
-            <h2>Arquitectura Tecnológica Detallada</h2>
-            
-            <h3>Metro Mirror (Peer-to-Peer Remote Copy - PPRC)</h3>
-            <p>Metro Mirror es la tecnología fundamental sobre la que se construye HyperSwap. Es una función de replicación de datos síncrona que opera a nivel de hardware dentro del DS8880. </p>
-            <ul>
-                <li><strong>Sincronía:</strong> Cada operación de escritura (I/O) en un volumen primario no se considera completada hasta que los datos han sido escritos y confirmados tanto en el DS8880 primario como en el secundario. </li>
-                <li><strong>Garantía Cero Pérdida de Datos (RPO=0):</strong> Este modo síncrono garantiza que, en caso de un fallo en el sitio primario, no se pierda ninguna transacción de datos confirmada.</li>
-                <li><strong>Estado <code>FULL DUPLEX</code>:</strong> Es el estado operativo normal de una pareja Metro Mirror. Indica que el volumen secundario es una copia exacta y perfectamente sincronizada del primario, y es un prerrequisito indispensable para que HyperSwap pueda ser activado.</li>
-            </ul>
-
-            <h3>HyperSwap y el Software de Orquestación</h3>
-            <p>HyperSwap no es una función que se activa con un simple interruptor; requiere un software de orquestación que gestione la complejidad de una conmutación, especialmente en un entorno de múltiples sistemas.</p>
-            <ul>
-                <li><strong>IBM GDPS (Geographically Dispersed Parallel Sysplex):</strong> Es la solución de automatización más robusta y recomendada para entornos Parallel Sysplex. GDPS gestiona no solo el almacenamiento, sino toda la infraestructura del sysplex (sistemas, red, Coupling Facility), proveyendo una solución de resiliencia completa. Coordina el "freeze" (congelamiento) de I/O y el "swap" de dispositivos de forma atómica en todos los miembros del sysplex para garantizar la integridad.</li>
-                <li><strong>IBM Copy Services Manager (CSM):</strong> Es una potente herramienta para gestionar y automatizar los servicios de copia de IBM. Puede gestionar sesiones de HyperSwap y es una excelente opción para entornos monoplex o sysplex de menor complejidad. Una de sus ventajas es que viene preinstalado en la Hardware Management Console (HMC) del DS8880. </li>
-            </ul>
-        </section>
-
-        <section id="difference">
-            <h2>Análisis de la Transición: De Monoplex a Parallel Sysplex</h2>
-            <p>
-                El desafío principal en la migración es pasar de una gestión de un solo punto a una coordinación distribuida. Un error en la sincronización del intercambio de almacenamiento en un sysplex puede llevar a una corrupción masiva de datos.
-            </p>
-            <div class="pro-tip">
-                <strong>Enfoque en la Coordinación:</strong> En un monoplex, CSM le dice a un sistema "intercambia tus discos". En un Parallel Sysplex, GDPS le dice a todos los sistemas "congelen toda la actividad de I/O AHORA, intercambien sus vistas de los discos AHORA, y reanuden el I/O AHORA", asegurando que todos lo hagan en el mismo instante lógico.
-            </div>
-            <table>
-                <tr>
-                    <th>Aspecto Técnico</th>
-                    <th>Entorno Monoplex</th>
-                    <th>Entorno Parallel Sysplex</th>
-                </tr>
-                <tr>
-                    <td><strong>Punto de Coordinación</strong></td>
-                    <td>La sesión de HyperSwap se coordina con una única imagen de z/OS.</td>
-                    <td>La sesión se coordina con todas las LPARs del sysplex a través del Coupling Facility y la señalización de GDPS.</td>
-                </tr>
-                <tr>
-                    <td><strong>Gestión del "Quiesce" (Pausa de I/O)</strong></td>
-                    <td>El "quiesce" de las aplicaciones y el sistema de archivos es local.</td>
-                    <td>GDPS debe realizar un "freeze" global del I/O en todo el sysplex para asegurar una imagen consistente de los datos en el momento del intercambio.</td>
-                </tr>
-                 <tr>
-                    <td><strong>Complejidad de la Política</strong></td>
-                    <td>La política de CSM define una o más parejas de volúmenes para un sistema.</td>
-                    <td>La política de GDPS define la topología completa del sysplex, dependencias entre sistemas, políticas de reinicio y el comportamiento de la automatización ante decenas de escenarios de fallo.</td>
-                </tr>
-            </table>
-        </section>
-
+        
         <section id="requirements">
-            <h2>Guía Técnica de Implementación</h2>
+            <h2>Análisis Profundo de Requisitos y Pasos de Implementación</h2>
             
-            <h3>Fase 1: Prerrequisitos de Infraestructura</h3>
-            <ol>
+            <h3 id="prerequisites-deep">Prerrequisitos Indispensables (Análisis Detallado)</h3>
+            <p>Antes de iniciar la configuración, es crucial validar que la infraestructura completa cumple con los siguientes requisitos técnicos:</p>
+            <ul>
                 <li>
-                    <strong>Configuración Física y Conectividad:</strong>
+                    <strong>Infraestructura de Almacenamiento:</strong>
                     <ul>
-                        <li>Dos DS8880 con conectividad de canal de fibra de alta velocidad y baja latencia entre ellos para el tráfico de Metro Mirror. La distancia máxima soportada es de 300 km. </li>
-                        <li>Cada LPAR en el sysplex debe tener rutas FICON redundantes hacia los puertos de ambos DS8880. Esto es crucial para que el "swap" sea posible.</li>
+                        <li>Se requieren dos sistemas de almacenamiento de la familia IBM DS8880 (ej. DS8886, DS8888F). Uno funcionará como sitio primario (activo) y el otro como secundario (pasivo).</li>
+                        <li>Ambos sistemas deben tener las licencias de software adecuadas, específicamente la licencia de **Copy Services (CS)**, que incluye Metro Mirror y HyperSwap.</li>
                     </ul>
                 </li>
                 <li>
-                    <strong>Configuración Lógica del DS8880:</strong>
+                    <strong>Tecnología de Replicación de Datos:</strong>
                     <ul>
-                        <li>Cree los volúmenes primarios y secundarios en sus respectivos DS8880.</li>
-                        <li>Establezca las relaciones Metro Mirror (PPRC) entre ellos. Puede usar la GUI del DS8880 o el DS CLI. Ejemplo con DS CLI: <br>
-                        <span class="code-block">mkpprc -dev &lt;ID_Storage_Image&gt; -remotedev &lt;ID_Storage_Image_Remoto&gt; -type mmir &lt;ID_Vol_Primario&gt;:&lt;ID_Vol_Secundario&gt;</span></li>
-                        <li>Verifique que todas las parejas alcancen el estado `FULL DUPLEX`.</li>
+                        <li>La replicación síncrona **Metro Mirror**, también conocida como Peer-to-Peer Remote Copy (PPRC), debe estar configurada y activa entre los volúmenes de ambos sistemas.</li>
+                        <li>Es mandatorio que todas las parejas de volúmenes alcancen y mantengan el estado <strong><code>FULL DUPLEX</code></strong>. Este estado confirma que la copia secundaria es una réplica exacta y en tiempo real de la primaria, lo cual es esencial para una conmutación sin pérdida de datos.</li>
                     </ul>
                 </li>
                  <li>
-                    <strong>Instalación y Configuración del Software de Gestión:</strong>
+                    <strong>Conectividad de Red y Canal de Fibra:</strong>
                     <ul>
-                        <li>Instale y configure GDPS en las LPARs designadas como sistemas de control (K-systems).</li>
-                        <li>O, si usa CSM, asegúrese de que el servidor CSM (ya sea externo o el que reside en la HMC) tenga conectividad de red con las HMCs de ambos DS8880 y con los sistemas z/OS.</li>
+                        <li>Se debe disponer de una red de canal de fibra (FICON para entornos z/OS) de alta velocidad y baja latencia. El DS8880 soporta adaptadores de 16 Gbps y 8 Gbps.</li>
+                        <li>Cada LPAR del Parallel Sysplex debe tener, como mínimo, dos rutas FICON físicas hacia el almacenamiento primario y dos rutas hacia el secundario, utilizando diferentes adaptadores y switches para eliminar puntos únicos de fallo.</li>
+                        <li>La distancia entre los dos sistemas DS8880 está limitada por la latencia que tolera la replicación síncrona, siendo el máximo soportado por Metro Mirror de 300 km. </li>
                     </ul>
                 </li>
-            </ol>
-
-            <h3>Fase 2: Configuración de la Sesión HyperSwap</h3>
-            <p>Estos pasos se realizan en la interfaz de GDPS o CSM.</p>
-            <ol>
-                <li><strong>Crear la Sesión:</strong> Inicie el asistente de creación de sesión y seleccione el tipo "HyperSwap". Se creará <strong>una única sesión</strong> para gestionar todos los volúmenes del sysplex.</li>
-                <li><strong>Poblar y Configurar la Sesión:</strong>
+                 <li>
+                    <strong>Software de Gestión y Orquestación:</strong>
                     <ul>
-                        <li>Añada los pares Metro Mirror a la sesión. El software validará su estado.</li>
-                        <li>Especifique los sistemas z/OS que forman parte del sysplex. En GDPS, esto se deriva de la definición del sysplex.</li>
-                        <li>Defina el comportamiento del "swap" (manual/automático) y las alertas.</li>
+                        <li>Se necesita una instancia funcional de **IBM GDPS (Geographically Dispersed Parallel Sysplex)** o **IBM Copy Services Manager (CSM)**.</li>
+                        <li><strong>GDPS</strong> es la solución recomendada para Parallel Sysplex, ya que automatiza no solo el swap de almacenamiento, sino también la gestión de la red, los sistemas y la recuperación del clúster completo.</li>
+                        <li><strong>CSM</strong> es una alternativa potente que viene preinstalada en la Hardware Management Console (HMC) del DS8880, lo que puede simplificar la infraestructura de gestión si no se requiere la automatización completa de GDPS. </li>
                     </ul>
                 </li>
-                <li><strong>Activar la Sesión:</strong>
-                    <ul>
-                        <li>Emita el comando `START` para la sesión. El software se comunicará con los componentes de z/OS (IOS - Input/Output Supervisor) en cada LPAR para registrar la configuración de HyperSwap.</li>
-                        <li>El sistema está ahora "armado" y listo para un intercambio.</li>
-                    </ul>
-                </li>
-                 <li><strong>Verificación y Monitorización:</strong>
-                    <ul>
-                        <li>Use los paneles de GDPS/CSM para verificar que la sesión está `Active`.</li>
-                        <li>Realice un "swap" planificado como prueba para validar que todo el proceso funciona como se espera, sin impacto para las aplicaciones.</li>
-                    </ul>
-                 </li>
-            </ol>
-        </section>
-        
-        <section id="links" class="links">
-            <h2>Documentación de Referencia y Manuales</h2>
-            <ul>
-                <li><a href="https://www.redbooks.ibm.com/abstracts/sg248323.html" target="_blank">IBM Redbook: IBM DS8880 Architecture and Implementation (SG24-8323)</a><br>Fuente principal para la arquitectura del DS8880 y detalles sobre los servicios de copia como Metro Mirror y la gestión a través de la HMC.</li>
-                <li><a href="https://www.ibm.com/docs/en/ds8000" target="_blank">IBM Knowledge Center: DS8000 Series</a><br>Portal central para toda la documentación técnica, guías de usuario de la CLI y guías de planificación.</li>
-                 <li><a href="https://www.ibm.com/products/gdps" target="_blank">Página de Producto de IBM GDPS</a><br>Información general y acceso a la documentación específica para la familia de productos GDPS.</li>
-                <li><a href="https://www.ibm.com/products/copy-services-manager" target="_blank">Página de Producto de IBM Copy Services Manager</a><br>Información sobre las capacidades de CSM, guías de implementación y notas de la versión.</li>
             </ul>
-        </section>
 
-    </div>
-
-    <footer>
-        <p>Esta página web ha sido generada por z/OS V3.1 Experto para facilitar la planificación de migraciones de alta disponibilidad.</p>
-    </footer>
-
-</body>
-</html>
+            <h3 id="implementation-deep">Pasos Detallados para la Implementación (Flujo de Trabajo Técnico)</h3>
+            <p>La configuración de HyperSwap es un proceso de orquestación realizado íntegramente desde la consola del software de gestión elegido. Para una replicación de un storage a otro que da servicio a un Parallel Sysplex de dos LPARs, se configura <strong>una única sesión de HyperSwap</strong> que engloba todos los volúmenes necesarios.</p>
+            <ol>
+                <li>
+                    <strong>Fase 1: Configuración de la Replicación Base (Metro Mirror)</strong>
+                    <p>Esta es la fundación de toda la solución. Se realiza a través de la DS GUI o DS CLI del DS
